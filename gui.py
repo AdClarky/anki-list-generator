@@ -79,5 +79,5 @@ class ListInput(QDialog):
         for card in cards:
             new_note = mw.col.new_note(model)
             new_note["Text"] = card
-            deck = mw.col.decks.id_for_name("Test")
+            deck = mw.col.decks.current()["id"]
             mw.col.add_note(new_note, deck)
