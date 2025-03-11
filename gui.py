@@ -5,18 +5,18 @@ from aqt import mw
 
 def convert_to_list(data: list[str]) -> list[str]:
     length = len(data)
-    data_list: list[str] = [f"1. {{{{c1::{data[0]}}}}}\n" + "".join([f"{j + 2}.\n" for j in range(length - 1)])]
+    data_list: list[str] = [f"1. {{{{c1::{data[0]}}}}}<br>" + "".join([f"{j + 2}.<br>" for j in range(length - 1)])]
     for i in range(length):
         if i == 0:
             continue
         card = ""
         for j in range(length):
             if j == i-1:
-                card += f"{j + 1}. {data[i-1]}\n"
+                card += f"{j + 1}. {data[i-1]}<br>"
             elif j == i:
-                card += f"{j + 1}. {{{{c1::{data[i]}}}}}\n"
+                card += f"{j + 1}. {{{{c1::{data[i]}}}}}<br>"
             else:
-                card += f"{j + 1}.\n"
+                card += f"{j + 1}.<br>"
         data_list.append(card)
     return data_list
 
@@ -33,22 +33,29 @@ class ListInput(QDialog):
         self.inputFields: list[QLineEdit] = []
 
         for i in range(3):
-            self.inputLabels.append(QLabel(f"String {i + 1}:"))
+            self.inputLabels.append(QLabel(f"Entry {i + 1}:"))
             self.inputFields.append(QLineEdit(self))
 
+        self.more_button = QPushButton("Add row", self)
         self.ok_button = QPushButton("OK", self)
         self.cancel_button = QPushButton("Cancel", self)
 
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
+
+        main_layout.addWidget(self.more_button)
+
+        self.field_layout = QVBoxLayout()
         for label, field in zip(self.inputLabels, self.inputFields):
-            layout.addWidget(label)
-            layout.addWidget(field)
+            self.field_layout.addWidget(label)
+            self.field_layout.addWidget(field)
+        main_layout.addLayout(self.field_layout)
 
-        layout.addWidget(self.ok_button)
-        layout.addWidget(self.cancel_button)
+        main_layout.addWidget(self.ok_button)
+        main_layout.addWidget(self.cancel_button)
 
-        self.setLayout(layout)
+        self.setLayout(main_layout)
 
+        self.more_button.clicked.connect(self.more_clicked)
         self.ok_button.clicked.connect(self.ok_clicked)
         self.cancel_button.clicked.connect(self.reject)
 
@@ -56,19 +63,21 @@ class ListInput(QDialog):
         data = [field.text() for field in self.inputFields]
         return data
 
+    def more_clicked(self):
+        self.inputLabels.append(QLabel(f"Entry {len(self.inputFields) + 1}:"))
+        self.field_layout.addWidget(self.inputLabels[-1])
+        self.inputFields.append(QLineEdit(self))
+        self.field_layout.addWidget(self.inputFields[-1])
+
     def ok_clicked(self):
         data = self.accumulate_data()
         cards = convert_to_list(data)
-        print(cards)
+        self.add_cloze(cards)
 
-    def add_cloze(self, data: str) -> None:
+    def add_cloze(self, cards: list[str]) -> None:
         model = mw.col.models.by_name("_Cloze")
-        new_note = mw.col.new_note(model)
-        new_note["Text"] = data
-        deck = mw.col.decks.id_for_name("Test")
-        mw.col.add_note(new_note, deck)
-
-
-if __name__ == '__main__':
-    myList = convert_to_list(["One", "Two", "Three", "Four"])
-    [print(item) for item in myList]
+        for card in cards:
+            new_note = mw.col.new_note(model)
+            new_note["Text"] = card
+            deck = mw.col.decks.id_for_name("Test")
+            mw.col.add_note(new_note, deck)
